@@ -235,8 +235,11 @@ locals {
         BASE_URL = { value = local.git_application_urls["prod/aldo"] }
       })
 
-      # Application Git (git-applications.tf). Fichiers dans le bucket
-      # tet-prod-rencontres, base sur le Postgres de prod (infra/prod/rencontres.tf).
+      # Application Git (git-applications.tf). Base Postgres et Storage sont
+      # encore sur leur projet Supabase Cloud, dont l'URL est en dur dans le
+      # dépôt. Cible, après bascule : bucket tet-prod-rencontres et Postgres de
+      # prod (infra/prod/rencontres.tf). Mettre ce commentaire à jour à chaque
+      # bascule.
       rencontres = {
         WEBSITE_URL  = { value = local.git_application_urls["prod/rencontres"] }
         DATABASE_URL = { secret = "rencontres-database-url" }

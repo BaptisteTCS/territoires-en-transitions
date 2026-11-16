@@ -17,7 +17,9 @@
 #     ObjectStorageObjectsWrite seulement. Ne PAS l'ajouter au groupe tet-app
 #     (ObjectStorageFullAccess) : la bucket policy ne fait que restreindre les
 #     droits IAM, qui bornent ce que la clé peut faire sur un bucket sans policy ;
-#   - ranger la clé :
+#   - ranger la clé. Les secrets de la prod sont dans tet-prod, pas dans le
+#     projet par défaut du script :
+#       export SECRET_PROJECT_ID="$(terraform -chdir=infra/platform output -raw prod_project_id)"
 #       terraform -chdir=infra/prod output -raw rencontres_s3_access_key_id \
 #         | infra/scripts/coolify-env-secret-set.sh prod rencontres-s3-access-key-id
 #       terraform -chdir=infra/prod output -raw rencontres_s3_secret_key \
@@ -72,8 +74,9 @@ resource "scaleway_object_bucket_policy" "rencontres" {
         Sid       = "Application"
         Effect    = "Allow"
         Principal = { SCW = ["application_id:${scaleway_iam_application.rencontres_storage.id}"] }
-        Action    = ["s3:GetObject", "s3:PutObject"]
-        Resource  = ["${scaleway_object_bucket.rencontres.name}/uploads/*"]
+        # La lecture passe par LecturePublique.
+        Action   = ["s3:PutObject"]
+        Resource = ["${scaleway_object_bucket.rencontres.name}/uploads/*"]
       },
       {
         # Sans cette déclaration, le premier apply verrouille le bucket pour
@@ -97,13 +100,19 @@ resource "scaleway_object_bucket_policy" "rencontres" {
 # base. La base est restaurée avec ce rôle, qui devient propriétaire des tables.
 #
 # DATABASE_URL reste un secret déposé à la main (rencontres-database-url), pour
-# que la bascule et le retour arrière soient le même geste :
+# que la bascule et le retour arrière soient le même geste (même
+# SECRET_PROJECT_ID que pour la clé S3, plus haut) :
 #   terraform -chdir=infra/prod output -raw rencontres_database_url \
 #     | infra/scripts/coolify-env-secret-set.sh prod rencontres-database-url
 
 resource "scaleway_rdb_database" "rencontres" {
   instance_id = module.postgres.instance_id
   name        = "rencontres"
+
+  # Le prevent_destroy de l'instance ne couvre pas ses bases.
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "random_password" "rencontres" {
