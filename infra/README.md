@@ -421,11 +421,13 @@ Mise en service d'une entrée :
 
 Les permissions IAM Object Storage valent pour un projet entier. `tet-prod` héberge le bucket
 de rencontres ([`prod/rencontres.tf`](prod/rencontres.tf)), dont la clé applicative a les
-droits IAM de lecture et d'écriture d'objets sur le projet. **Tout bucket créé dans `tet-prod`
-porte donc sa propre bucket policy dès sa création** (son application + les opérateurs de
-`bucket_admin_principals`) : un bucket sans policy reste ouvert à toute clé IAM du projet.
-Une bucket policy fonctionne en liste blanche : l'identité qui lance `terraform apply` doit y
-figurer, sinon elle perd l'accès au bucket.
+droits IAM de lecture et d'écriture d'objets sur le projet. **Tout bucket de `tet-prod` se
+crée donc par [`modules/bucket`](modules/bucket)**, qui pose la bucket policy avec le bucket
+(les déclarations de l'application + les opérateurs) : un bucket sans policy reste ouvert à
+toute clé IAM du projet. Une bucket policy fonctionne en liste blanche : toute identité qui
+lance `terraform apply` sur `infra/prod` doit être membre du groupe IAM `tet-admin`, d'où
+[`prod/main.tf`](prod/main.tf) tire les opérateurs, sinon le refresh du bucket lui renvoie
+un 403. Après l'ajout d'un membre, un membre déjà autorisé réapplique `infra/prod`.
 
 ### Variables d'environnement (Secret Manager → Coolify)
 
