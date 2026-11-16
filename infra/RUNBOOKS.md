@@ -132,9 +132,10 @@ la passe 2 (`copyto` saute les objets déjà identiques).
 
 ## Rencontres : après le premier apply
 
-Deux comportements de RDB ne sont pas vérifiés ([`prod/rencontres.tf`](prod/rencontres.tf)).
-À contrôler juste après le premier `terraform apply` de `infra/prod`, **avant** de basculer
-`DATABASE_URL` :
+L'isolation du rôle `rencontres` repose sur le privilège `none` de RDB
+([`prod/rencontres.tf`](prod/rencontres.tf)). Contrôlé le 2026-11-16, après le premier
+`terraform apply` de `infra/prod` : les deux points passent. À refaire si l'instance ou le
+rôle est recréé, **avant** de basculer `DATABASE_URL` :
 
 ```sh
 # 1. Le plan doit être vide. Un diff permanent ou une erreur « couldn't retrieve
@@ -142,10 +143,20 @@ Deux comportements de RDB ne sont pas vérifiés ([`prod/rencontres.tf`](prod/re
 #    (terraform state rm si le refresh échoue), puis juger sur le point 2.
 terraform -chdir=infra/prod plan
 
-# 2. Le rôle rencontres ne doit pas pouvoir ouvrir la base de TET. Depuis un poste
-#    de pg_allowed_ips, la connexion doit être refusée :
-PGPASSWORD="$(terraform -chdir=infra/prod output -raw rencontres_db_password)" \
-  psql -h <endpoint public> -p <port> -U rencontres -d tet -c 'select 1'
+# 2. Le rôle rencontres ne doit pas pouvoir ouvrir la base de TET. L'instance n'a
+#    pas d'endpoint public (pg_allowed_ips vide) : tunnel par le serveur de prod
+#    (/tmp/prod_key : cf. README, « Prod : clé lue dans le projet tet-prod »).
+PG="$(terraform -chdir=infra/prod output -raw rencontres_database_url | sed -E 's|.*@([^/]+)/.*|\1|')"
+ssh -fN -L 15432:"$PG" -J tet-ops@<ip-coolify> -i /tmp/prod_key \
+  root@$(terraform -chdir=infra/prod output -raw server_ssh_host)
+
+export PGPASSWORD="$(terraform -chdir=infra/prod output -raw rencontres_db_password)" PGSSLMODE=require
+for db in rencontres tet; do
+  echo "== $db"
+  psql -h localhost -p 15432 -U rencontres -d "$db" -Atc 'select current_user, current_database()'
+done
+# Attendu : « rencontres|rencontres » (témoin : mot de passe et réseau fonctionnent),
+# puis un refus sur tet. Fermer le tunnel : pkill -f '15432:'
 ```
 
 Si la connexion passe, ne pas basculer : le rôle peut appeler toute fonction de `tet`

@@ -80,10 +80,9 @@ module "rencontres_bucket" {
 # rôle, qui devient propriétaire des tables.
 #
 # Le rôle ne doit rien pouvoir faire sur la base de TET : le privilège « none »
-# plus bas le déclare. Non vérifié sur RDB : Postgres accorde par défaut
-# CONNECT à PUBLIC sur chaque base, et « none » peut ne pas le retirer. Les
-# deux vérifications qui conditionnent la bascule (plan vide, connexion à tet
-# refusée) sont dans infra/RUNBOOKS.md, « Rencontres : après le premier apply ».
+# plus bas le déclare. Vérifié sur RDB le 2026-11-16 : « none » retire bien
+# CONNECT (« User does not have CONNECT privilege ») et se relit sans diff. Le
+# contrôle est dans infra/RUNBOOKS.md, « Rencontres : après le premier apply ».
 #
 # DATABASE_URL reste un secret déposé à la main (rencontres-database-url), pour
 # que la bascule et le retour arrière soient le même geste. Les secrets de la
@@ -127,8 +126,6 @@ resource "scaleway_rdb_privilege" "rencontres" {
   permission    = "all"
 }
 
-# Si l'API ne relit pas « none » tel quel, cette ressource donne un diff à
-# chaque plan, ou une erreur de refresh qui bloque tout le stack : cf. runbook.
 resource "scaleway_rdb_privilege" "rencontres_tet" {
   instance_id   = module.postgres.instance_id
   database_name = module.postgres.database_name
