@@ -13,24 +13,18 @@
 #
 # À faire à la main (droits d'organisation), une fois :
 #   - donner à l'application tet-prod-rencontres-storage une politique IAM
-#     limitée à tet-prod, avec ObjectStorageObjectsRead et
-#     ObjectStorageObjectsWrite seulement. Ne PAS l'ajouter au groupe tet-app
-#     (ObjectStorageFullAccess) : la bucket policy ne fait que restreindre les
-#     droits IAM, qui bornent ce que la clé peut faire sur un bucket sans policy ;
-#   - ranger la clé. Les coquilles des secrets sont créées par l'apply de
-#     infra/coolify, qui échoue ensuite sur env_push (« secret sans version »)
-#     et bloque tout push d'env de rencontres jusqu'au dépôt : enchaîner apply,
-#     dépôt, apply. Les secrets de la prod sont dans tet-prod, pas dans le
-#     projet par défaut du script :
-#       export SECRET_PROJECT_ID="$(terraform -chdir=infra/platform output -raw prod_project_id)"
-#       terraform -chdir=infra/prod output -raw rencontres_s3_access_key_id \
-#         | infra/scripts/coolify-env-secret-set.sh prod rencontres-s3-access-key-id
-#       terraform -chdir=infra/prod output -raw rencontres_s3_secret_key \
-#         | infra/scripts/coolify-env-secret-set.sh prod rencontres-s3-secret-access-key
+#     limitée à tet-prod, avec ObjectStorageObjectsWrite seulement (l'appli ne
+#     fait que PutObject, la lecture est publique). Ne PAS l'ajouter au groupe
+#     tet-app (ObjectStorageFullAccess) : la bucket policy ne fait que
+#     restreindre les droits IAM, qui bornent ce que la clé peut faire sur un
+#     bucket sans policy.
+#
+# La clé va dans Secret Manager par coolify-env-secrets.tf, d'où infra/coolify
+# la pousse : rien à déposer à la main.
 
 resource "scaleway_iam_application" "rencontres_storage" {
   name        = "tet-prod-rencontres-storage"
-  description = "rencontres prod : lecture et écriture sous uploads/ du bucket tet-prod-rencontres. Géré par Terraform (infra/prod)."
+  description = "rencontres prod : écriture sous uploads/ du bucket tet-prod-rencontres. Géré par Terraform (infra/prod)."
   # Pas de « : » dans les tags IAM, contrairement aux autres produits.
   tags = ["tet", "env=prod", "managed-by=terraform"]
 }
@@ -63,7 +57,7 @@ module "rencontres_bucket" {
     {
       # Lecture publique des fichiers, sans ACL objet par objet. Le listing
       # reste fermé.
-      Sid       = "LecturePublique"
+      Sid       = "PublicRead"
       Effect    = "Allow"
       Principal = "*"
       Action    = ["s3:GetObject"]
@@ -73,7 +67,7 @@ module "rencontres_bucket" {
       Sid       = "Application"
       Effect    = "Allow"
       Principal = { SCW = ["application_id:${scaleway_iam_application.rencontres_storage.id}"] }
-      # La lecture passe par LecturePublique.
+      # La lecture passe par PublicRead.
       Action   = ["s3:PutObject"]
       Resource = ["${local.rencontres_bucket}/uploads/*"]
     },
@@ -87,17 +81,14 @@ module "rencontres_bucket" {
 #
 # Le rôle ne doit rien pouvoir faire sur la base de TET : le privilège « none »
 # plus bas le déclare. Non vérifié sur RDB : Postgres accorde par défaut
-# CONNECT à PUBLIC sur chaque base, et « none » peut ne pas le retirer. À
-# vérifier AVANT la bascule, depuis un poste de pg_allowed_ips ; la connexion
-# doit être refusée :
-#   PGPASSWORD="$(terraform -chdir=infra/prod output -raw rencontres_db_password)" \
-#     psql -h <endpoint public> -p <port> -U rencontres -d tet -c 'select 1'
-# Si elle passe : REVOKE CONNECT ON DATABASE tet FROM PUBLIC par l'admin, après
-# avoir vérifié que les rôles de TET ont leur propre CONNECT.
+# CONNECT à PUBLIC sur chaque base, et « none » peut ne pas le retirer. Les
+# deux vérifications qui conditionnent la bascule (plan vide, connexion à tet
+# refusée) sont dans infra/RUNBOOKS.md, « Rencontres : après le premier apply ».
 #
 # DATABASE_URL reste un secret déposé à la main (rencontres-database-url), pour
-# que la bascule et le retour arrière soient le même geste (même
-# SECRET_PROJECT_ID que pour la clé S3, plus haut) :
+# que la bascule et le retour arrière soient le même geste. Les secrets de la
+# prod sont dans tet-prod, pas dans le projet par défaut du script :
+#   export SECRET_PROJECT_ID="$(terraform -chdir=infra/platform output -raw prod_project_id)"
 #   terraform -chdir=infra/prod output -raw rencontres_database_url \
 #     | infra/scripts/coolify-env-secret-set.sh prod rencontres-database-url
 
@@ -136,6 +127,8 @@ resource "scaleway_rdb_privilege" "rencontres" {
   permission    = "all"
 }
 
+# Si l'API ne relit pas « none » tel quel, cette ressource donne un diff à
+# chaque plan, ou une erreur de refresh qui bloque tout le stack : cf. runbook.
 resource "scaleway_rdb_privilege" "rencontres_tet" {
   instance_id   = module.postgres.instance_id
   database_name = module.postgres.database_name

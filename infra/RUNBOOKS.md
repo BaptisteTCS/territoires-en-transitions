@@ -130,6 +130,30 @@ conséquence. Ils faussent aussi le contrôle final : `rclone size` doit compter
 autant d'objets que `select count(*) from storage.objects`. Sinon, relancer la boucle de
 la passe 2 (`copyto` saute les objets déjà identiques).
 
+## Rencontres : après le premier apply
+
+Deux comportements de RDB ne sont pas vérifiés ([`prod/rencontres.tf`](prod/rencontres.tf)).
+À contrôler juste après le premier `terraform apply` de `infra/prod`, **avant** de basculer
+`DATABASE_URL` :
+
+```sh
+# 1. Le plan doit être vide. Un diff permanent ou une erreur « couldn't retrieve
+#    privileges » sur scaleway_rdb_privilege.rencontres_tet : retirer la ressource
+#    (terraform state rm si le refresh échoue), puis juger sur le point 2.
+terraform -chdir=infra/prod plan
+
+# 2. Le rôle rencontres ne doit pas pouvoir ouvrir la base de TET. Depuis un poste
+#    de pg_allowed_ips, la connexion doit être refusée :
+PGPASSWORD="$(terraform -chdir=infra/prod output -raw rencontres_db_password)" \
+  psql -h <endpoint public> -p <port> -U rencontres -d tet -c 'select 1'
+```
+
+Si la connexion passe, ne pas basculer : le rôle peut appeler toute fonction de `tet`
+exécutable par `PUBLIC`. Tenter `REVOKE CONNECT ON DATABASE tet FROM PUBLIC` avec
+`tet_admin`, après avoir vérifié que les rôles de TET ont leur propre `CONNECT`. `tet_admin`
+n'est pas superuser et l'ordre peut être refusé : il reste alors une instance dédiée à
+rencontres.
+
 ## Restauration de l'instance Coolify
 
 Procédure Coolify officielle ([instance-restore](https://github.com/coollabsio/coolify-docs/blob/main/content/docs/core/backup-and-recovery/instance-restore.mdx)),

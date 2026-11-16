@@ -172,6 +172,17 @@ credentials Terraform n'ont pas. Un admin crée donc, une fois :
    - une clé d'API dont le **projet par défaut est `tet-backups`** (l'API S3 résout les
      buckets dans le projet par défaut de la clé), transmise par un canal sûr puis déposée
      dans Secret Manager (cf. [Secrets à déposer](#secrets-à-déposer-à-la-main)).
+4. **Pour `infra/prod`** (bucket de rencontres, [`prod/rencontres.tf`](prod/rencontres.tf)) :
+   - le groupe IAM `tet-admin`, avec pour membres **toutes** les identités qui appliquent
+     `infra/prod` : ce sont les seules autorisées par les bucket policies de `tet-prod`
+     (cf. [Buckets de `tet-prod`](#buckets-de-tet-prod--une-bucket-policy-par-bucket)) ;
+   - pour ces mêmes identités, sur l'organisation : `IAMGroupReadOnly` (chaque plan lit le
+     groupe) et `IAMApplicationManager` (l'apply crée l'application
+     `tet-prod-rencontres-storage` et sa clé). Pas `IAMManager`, qui donne aussi la main sur
+     les politiques et les projets. Sans ces droits, tout plan de `infra/prod` échoue en
+     403, pas seulement rencontres ;
+   - sur l'application `tet-prod-rencontres-storage`, une fois créée par l'apply : une
+     politique limitée à `tet-prod`, avec `ObjectStorageObjectsWrite` seulement.
 
 ### Bootstrap (une fois)
 
@@ -420,8 +431,8 @@ Mise en service d'une entrée :
 ### Buckets de `tet-prod` : une bucket policy par bucket
 
 Les permissions IAM Object Storage valent pour un projet entier. `tet-prod` héberge le bucket
-de rencontres ([`prod/rencontres.tf`](prod/rencontres.tf)), dont la clé applicative a les
-droits IAM de lecture et d'écriture d'objets sur le projet. **Tout bucket de `tet-prod` se
+de rencontres ([`prod/rencontres.tf`](prod/rencontres.tf)), dont la clé applicative a le
+droit IAM d'écriture d'objets sur le projet. **Tout bucket de `tet-prod` se
 crée donc par [`modules/bucket`](modules/bucket)**, qui pose la bucket policy avec le bucket
 (les déclarations de l'application + les opérateurs) : un bucket sans policy reste ouvert à
 toute clé IAM du projet. Une bucket policy fonctionne en liste blanche : toute identité qui

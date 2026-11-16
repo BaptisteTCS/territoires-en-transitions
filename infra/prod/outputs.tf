@@ -145,17 +145,6 @@ output "grafana_dashboards_url" {
 
 # --- rencontres ---
 
-output "rencontres_s3_access_key_id" {
-  description = "Access key S3 de rencontres. À ranger dans le secret rencontres-s3-access-key-id (cf. rencontres.tf)."
-  value       = scaleway_iam_api_key.rencontres_storage.access_key
-}
-
-output "rencontres_s3_secret_key" {
-  description = "Secret key S3 de rencontres. À ranger dans le secret rencontres-s3-secret-access-key (cf. rencontres.tf)."
-  value       = scaleway_iam_api_key.rencontres_storage.secret_key
-  sensitive   = true
-}
-
 output "rencontres_db_password" {
   description = "Mot de passe du rôle rencontres, pour la restauration par l'endpoint public (PGPASSWORD)."
   value       = random_password.rencontres.result

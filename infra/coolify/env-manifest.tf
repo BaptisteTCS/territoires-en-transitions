@@ -53,6 +53,7 @@ locals {
     "supabase-database-url", "gotrue-db-database-url", "storage-db-database-url",
     "queue-redis-url", "queue-redis-tls-ca", "postgres-tls-ca",
     "cockpit-token", "cockpit-metrics-push-url", "cockpit-logs-push-url",
+    "rencontres-s3-access-key-id", "rencontres-s3-secret-access-key",
   ]
 
   # Fournies par l'image ou par le déploiement : les poser dans Coolify
