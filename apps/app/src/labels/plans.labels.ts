@@ -3,6 +3,7 @@ import {
   OrigineSecteurs,
   SECTEUR_REGLEMENTAIRE_LABELS,
   AiPlanImportProfile,
+  AiPlanImportProfileEnum,
   AI_PLAN_IMPORT_PROFILE_LABELS,
 } from '@tet/domain/plans';
 import { plural } from '@tet/ui/labels/plural';
@@ -304,8 +305,7 @@ export const plansLabels = {
   creerPlan: 'Créer un plan',
   creerPlanSousTitre: 'directement sur la plateforme',
   importPlanSupportTitre: 'Demander un import au support',
-  importPlanSupportSousTitre:
-    'en envoyant votre document pour les autres types de plans',
+  importPlanSupportSousTitre: 'en envoyant votre document à notre équipe',
   importPlanSupportEnvoyez: 'Envoyez-nous votre document (PDF ou Excel) via le',
   importPlanSupportChat: 'chat en ligne',
   importPlanSupportOuAdresse: 'ou à l’adresse',
@@ -318,9 +318,11 @@ export const plansLabels = {
   importPlanIaTypesCompatiblesSousTitre: (
     profiles: readonly AiPlanImportProfile[]
   ) =>
-    `depuis un fichier, pour ${new Intl.ListFormat('fr').format(
-      profiles.map((profile) => AI_PLAN_IMPORT_PROFILE_LABELS[profile])
-    )}`,
+    profiles.includes(AiPlanImportProfileEnum.GENERIC)
+      ? 'depuis un fichier, pour tous les types de plan'
+      : `depuis un fichier, pour ${new Intl.ListFormat('fr').format(
+          profiles.map((profile) => AI_PLAN_IMPORT_PROFILE_LABELS[profile])
+        )}`,
   importPlanIaEtapeReperage: 'Repérage des actions',
   importPlanIaContact:
     'L’import ne vous convient pas ? Contactez-nous via le live chat en joignant votre fichier et quelques mots de contexte, cela nous aide à l’améliorer.',
