@@ -200,6 +200,7 @@ export const DossierInstructionPage = ({
       )}
       {etape === PcaetInstructionPartieEnum.PLAN && (
         <EtapePlanSection
+          dossierRef={dossierRef}
           plans={dossier.plans}
           collectiviteId={dossier.collectivite.id}
         />
