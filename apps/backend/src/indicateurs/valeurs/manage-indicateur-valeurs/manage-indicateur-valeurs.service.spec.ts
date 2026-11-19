@@ -1616,7 +1616,7 @@ describe('Indicateurs → manage-indicateur-valeurs.service', () => {
         )
       ).resolves.toMatchObject({
         success: false,
-        error: 'INVALID_VALUE',
+        error: 'PERIODICITE_MISMATCH',
         cause: {
           message: 'La valeur doit respecter la périodicité de déclaration',
         },
@@ -2036,7 +2036,7 @@ describe('Indicateurs → manage-indicateur-valeurs.service', () => {
         )
       ).resolves.toMatchObject({
         success: false,
-        error: 'INVALID_VALUE',
+        error: 'PERIODICITE_MISMATCH',
         cause: {
           message: 'La valeur doit respecter la périodicité de déclaration',
         },
@@ -2101,7 +2101,7 @@ describe('Indicateurs → manage-indicateur-valeurs.service', () => {
         )
       ).resolves.toMatchObject({
         success: false,
-        error: 'INVALID_VALUE',
+        error: 'INDICATEUR_NOT_AVAILABLE',
         cause: {
           message: 'Indicateur 10 non disponible pour la collectivité 3',
         },
@@ -2192,7 +2192,7 @@ describe('Indicateurs → manage-indicateur-valeurs.service', () => {
         )
       ).resolves.toMatchObject({
         success: false,
-        error: 'INVALID_VALUE',
+        error: 'INDICATEUR_NOT_AVAILABLE',
         cause: {
           message: 'Indicateur 11 non disponible pour la collectivité 3',
         },

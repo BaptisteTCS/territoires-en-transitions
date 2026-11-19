@@ -93,7 +93,7 @@ describe('UpsertGridValeursService.upsertGridValeurs', () => {
   it("retourne l'échec de la validation en code de grille sans écrire de valeurs calculées", async () => {
     const cause = new Error('détail précis');
     const { service, manage } = toServiceWithMocks({
-      validation: failure('INVALID_VALUE', cause),
+      validation: failure('PERIODICITE_MISMATCH', cause),
     });
 
     const result = await service.upsertGridValeurs(input, {
