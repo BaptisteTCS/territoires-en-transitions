@@ -48,6 +48,7 @@ export const toSourceTableRows = ({
         />
       ),
       cellOf: (periode) => ({
+        kind: 'valeurs',
         resultat: findValeurOfPeriode({
           valeurs: row.resultats?.valeurs,
           periode,

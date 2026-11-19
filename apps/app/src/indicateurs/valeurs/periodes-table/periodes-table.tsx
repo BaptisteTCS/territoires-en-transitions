@@ -14,20 +14,22 @@ import type {
 
 type Props = {
   title: string;
+  label?: string;
   unite: string;
   periodes: readonly IndicateurPeriode[];
   rows: readonly PeriodeTableRow[];
-  deletablePeriodeKeys: ReadonlySet<string>;
+  deletablePeriodeKeys?: ReadonlySet<string>;
   privatePeriodeKey?: string;
   readonly?: boolean;
   addPeriode?: ReactNode;
   commentaires?: PeriodeTableCommentaires;
   scrollRef?: RefObject<HTMLDivElement | null>;
-  onDelete: (periode: IndicateurPeriode) => void;
+  onDelete?: (periode: IndicateurPeriode) => void;
 };
 
 export const PeriodesTable = ({
   title,
+  label = title,
   unite,
   periodes,
   rows,
@@ -51,7 +53,7 @@ export const PeriodesTable = ({
         maxHeight="none"
         layout="auto"
         role="table"
-        aria-label={title}
+        aria-label={label}
         data-test="indicateurs.valeurs.table"
       >
         <PeriodesTableHeader

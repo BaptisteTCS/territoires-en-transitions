@@ -9,22 +9,24 @@ import { IndicateurHeaderTitleCell } from '../grid/indicateur-title.header-cell'
 import { IndicateurValeurPeriodeHeaderCell } from '../grid/indicateur-valeur-periode.header-cell';
 import { ADD_PERIODE_CELL_CLASSNAME } from './periodes-table.styles';
 
+const NO_DELETABLE_PERIODE_KEYS: ReadonlySet<string> = new Set();
+
 type Props = {
   title: string;
   unite: string;
   periodes: readonly IndicateurPeriode[];
-  deletablePeriodeKeys: ReadonlySet<string>;
+  deletablePeriodeKeys?: ReadonlySet<string>;
   privatePeriodeKey?: string;
   readonly?: boolean;
   addPeriode?: ReactNode;
-  onDelete: (periode: IndicateurPeriode) => void;
+  onDelete?: (periode: IndicateurPeriode) => void;
 };
 
 export const PeriodesTableHeader = ({
   title,
   unite,
   periodes,
-  deletablePeriodeKeys,
+  deletablePeriodeKeys = NO_DELETABLE_PERIODE_KEYS,
   privatePeriodeKey,
   readonly,
   addPeriode,
@@ -54,7 +56,7 @@ export const PeriodesTableHeader = ({
                 </span>
               </Tooltip>
             )}
-            {deletablePeriodeKeys.has(key) && !readonly && (
+            {onDelete && deletablePeriodeKeys.has(key) && !readonly && (
               <Button
                 icon="delete-bin-6-line"
                 size="xs"
