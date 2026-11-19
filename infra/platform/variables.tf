@@ -154,6 +154,10 @@ variable "vpn_ssh_allowed_ips" {
   description = "CIDR autorisés en SSH sur l'IP publique de la passerelle, en secours si le tunnel tombe. Vide par défaut."
   type        = list(string)
   default     = []
+  validation {
+    condition     = alltrue([for c in var.vpn_ssh_allowed_ips : can(cidrhost(c, 0)) && !startswith(c, "0.0.0.0/")])
+    error_message = "vpn_ssh_allowed_ips : des CIDR (ex. 203.0.113.10/32), jamais 0.0.0.0/0."
+  }
 }
 
 variable "vpn_ssh_authorized_keys" {
