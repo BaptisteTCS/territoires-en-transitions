@@ -1,5 +1,6 @@
 'use client';
 
+import { useDeclareSousIndicateursPeriodes } from '@/app/indicateurs/sous-indicateurs/data/use-declare-sous-indicateurs-periodes';
 import { useSaveSousIndicateurValeur } from '@/app/indicateurs/sous-indicateurs/data/use-save-sous-indicateur-valeur';
 import { useSousIndicateursTable } from '@/app/indicateurs/sous-indicateurs/data/use-sous-indicateurs-table';
 import type { JSX, PropsWithChildren } from 'react';
@@ -11,6 +12,7 @@ import {
 const SOUS_INDICATEURS_TABLE_VALUE: IndicateurSousIndicateursTableValue = {
   useSousIndicateursTable,
   useSaveSousIndicateurValeur,
+  useDeclareSousIndicateursPeriodes,
 };
 
 export const IndicateurSousIndicateursTableDataProvider = ({

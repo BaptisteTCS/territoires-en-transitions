@@ -112,6 +112,7 @@ const renderDonnees = (indicateur: IndicateurDetaille) => {
             value={{
               useSousIndicateursTable,
               useSaveSousIndicateurValeur: () => vi.fn(),
+              useDeclareSousIndicateursPeriodes: () => vi.fn(),
             }}
           >
             <IndicateurDonnees />

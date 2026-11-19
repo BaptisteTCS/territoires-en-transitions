@@ -11,6 +11,7 @@ import { appLabels } from '@/app/labels/catalog';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import {
   IndicateurPeriodes,
+  type IndicateurPeriode,
   type IndicateurPeriodicite,
 } from '@tet/domain/indicateurs';
 import { describe, expect, it, vi } from 'vitest';
@@ -150,11 +151,13 @@ const renderTable = (
 ) => {
   const useSousIndicateursTable = vi.fn(() => state);
   const saveValeur = vi.fn().mockResolvedValue(true);
+  const declarePeriodes = vi.fn().mockResolvedValue(undefined);
   render(
     <IndicateurSousIndicateursTableProvider
       value={{
         useSousIndicateursTable,
         useSaveSousIndicateurValeur: () => saveValeur,
+        useDeclareSousIndicateursPeriodes: () => declarePeriodes,
       }}
     >
       <IndicateurSousIndicateursTable
@@ -166,7 +169,7 @@ const renderTable = (
       />
     </IndicateurSousIndicateursTableProvider>
   );
-  return { useSousIndicateursTable, saveValeur };
+  return { useSousIndicateursTable, saveValeur, declarePeriodes };
 };
 
 const renderReadyTable = (
@@ -306,6 +309,50 @@ describe('IndicateurSousIndicateursTable', () => {
         name: getIndicateurValeurFieldLabel('resultat', '2020'),
       })
     ).toHaveLength(1);
+  });
+
+  it("déclare l'année ajoutée sur chaque feuille du tableau, pas sur les niveaux intermédiaires", async () => {
+    const { declarePeriodes } = renderReadyTable(
+      toData({ totalCells: COMPLETE_TOTAL_CELLS }),
+      { isReadonly: false }
+    );
+
+    const input = screen.getByRole('textbox', { name: 'Ajouter une année' });
+    fireEvent.change(input, { target: { value: '2024' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Valider et ajouter une année' })
+    );
+
+    await vi.waitFor(() => expect(declarePeriodes).toHaveBeenCalledTimes(1));
+    const [indicateurIds, periodes] = declarePeriodes.mock.calls[0];
+    expect(indicateurIds).toEqual([5, 6]);
+    expect(
+      periodes.map((periode: IndicateurPeriode) =>
+        IndicateurPeriodes.format(periode)
+      )
+    ).toEqual(['2024']);
+  });
+
+  it("ne propose pas d'ajouter une année en lecture seule", () => {
+    renderReadyTable(toData({ totalCells: COMPLETE_TOTAL_CELLS }));
+
+    expect(
+      screen.queryByRole('textbox', { name: 'Ajouter une année' })
+    ).toBeNull();
+  });
+
+  it("propose d'ajouter un mois, et non une année, pour un indicateur mensuel", () => {
+    renderReadyTable(toData({ totalCells: COMPLETE_TOTAL_CELLS }), {
+      periodicite: 'mensuelle',
+      isReadonly: false,
+    });
+
+    expect(
+      screen.queryByRole('textbox', { name: 'Ajouter une année' })
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Ajouter un mois' })
+    ).toBeDefined();
   });
 
   it('ne propose aucune saisie en lecture seule', () => {
