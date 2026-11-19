@@ -130,6 +130,14 @@ describe('IndicateurValeursTable', () => {
     ]);
   });
 
+  it("n'épingle pas le titre de l'indicateur au défilement horizontal", () => {
+    renderTable();
+
+    expect(
+      screen.getByRole('columnheader', { name: 'Déchets (t)' }).className
+    ).not.toContain('sticky');
+  });
+
   it('affiche une ligne pour la source collectivité, nommée par son libellé', () => {
     renderTable();
 

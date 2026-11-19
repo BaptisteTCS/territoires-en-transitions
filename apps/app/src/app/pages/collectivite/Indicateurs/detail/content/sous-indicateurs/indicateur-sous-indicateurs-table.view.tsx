@@ -67,6 +67,7 @@ const ReadyTable = ({
       periodes={periodes}
       rows={rows}
       readonly
+      isTitlePinned
     />
   );
 };

@@ -3,7 +3,7 @@ import {
   IndicateurPeriodes,
   type IndicateurPeriode,
 } from '@tet/domain/indicateurs';
-import { Button, Icon, TableHead, TableHeaderCell, Tooltip } from '@tet/ui';
+import { Button, cn, Icon, TableHead, TableHeaderCell, Tooltip } from '@tet/ui';
 import type { ReactNode } from 'react';
 import { IndicateurHeaderTitleCell } from '../grid/indicateur-title.header-cell';
 import { IndicateurValeurPeriodeHeaderCell } from '../grid/indicateur-valeur-periode.header-cell';
@@ -18,6 +18,7 @@ type Props = {
   deletablePeriodeKeys?: ReadonlySet<string>;
   privatePeriodeKey?: string;
   readonly?: boolean;
+  isTitlePinned?: boolean;
   addPeriode?: ReactNode;
   onDelete?: (periode: IndicateurPeriode) => void;
 };
@@ -29,6 +30,7 @@ export const PeriodesTableHeader = ({
   deletablePeriodeKeys = NO_DELETABLE_PERIODE_KEYS,
   privatePeriodeKey,
   readonly,
+  isTitlePinned = false,
   addPeriode,
   onDelete,
 }: Props) => (
@@ -37,8 +39,11 @@ export const PeriodesTableHeader = ({
       <IndicateurHeaderTitleCell
         title={title}
         unit={unite}
-        pinnedLeft={false}
-        className="border-b border-r border-primary-4"
+        pinnedLeft={isTitlePinned}
+        className={cn(
+          'border-b border-r border-primary-4',
+          isTitlePinned && 'bg-white'
+        )}
       />
       {periodes.map((periode) => {
         const key = IndicateurPeriodes.key(periode);

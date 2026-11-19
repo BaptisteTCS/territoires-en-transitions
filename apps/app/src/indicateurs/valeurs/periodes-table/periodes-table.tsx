@@ -21,6 +21,7 @@ type Props = {
   deletablePeriodeKeys?: ReadonlySet<string>;
   privatePeriodeKey?: string;
   readonly?: boolean;
+  isTitlePinned?: boolean;
   addPeriode?: ReactNode;
   commentaires?: PeriodeTableCommentaires;
   scrollRef?: RefObject<HTMLDivElement | null>;
@@ -36,6 +37,7 @@ export const PeriodesTable = ({
   deletablePeriodeKeys,
   privatePeriodeKey,
   readonly,
+  isTitlePinned,
   addPeriode,
   commentaires,
   scrollRef,
@@ -63,6 +65,7 @@ export const PeriodesTable = ({
           deletablePeriodeKeys={deletablePeriodeKeys}
           privatePeriodeKey={privatePeriodeKey}
           readonly={readonly}
+          isTitlePinned={isTitlePinned}
           addPeriode={addPeriode}
           onDelete={onDelete}
         />
