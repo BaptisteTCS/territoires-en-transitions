@@ -5,13 +5,26 @@
 #
 #     source infra/scripts/coolify-env.sh
 #
-# Le token API Coolify (format {id}|{token}) est créé UNE fois dans l'UI
-# (Security > API Tokens, scope root), puis stocké dans Scaleway Secret Manager.
-# On ne le met jamais en clair dans le repo ni dans le state (R4).
+# Le token API Coolify (format {id}|{token}) est créé UNE fois dans l'UI de
+# l'instance de l'incubateur, dans notre Team (Security > API Tokens, scope
+# root), puis stocké dans Scaleway Secret Manager. On ne le met jamais en clair
+# dans le repo ni dans le state (R4).
+
+_tfvars="$(git rev-parse --show-toplevel 2>/dev/null)/infra/coolify/terraform.tfvars"
+_tfvar() {
+  [ -f "$_tfvars" ] && sed -nE \
+    "s/^[[:space:]]*$1[[:space:]]*=[[:space:]]*\"([^\"]+)\".*/\1/p" "$_tfvars" | head -n1
+}
 
 # L'instance Coolify est transverse : un seul endpoint pilote tous les
-# environnements, d'où l'absence de préfixe d'environnement ici.
-export COOLIFY_ENDPOINT="${COOLIFY_ENDPOINT:-https://coolify.territoiresentransitions.fr/api/v1}"
+# environnements. Par défaut, celui de infra/coolify/terraform.tfvars.
+COOLIFY_ENDPOINT="${COOLIFY_ENDPOINT:-$(_tfvar coolify_endpoint)}"
+if [ -z "$COOLIFY_ENDPOINT" ]; then
+  echo "coolify-env.sh : COOLIFY_ENDPOINT introuvable (coolify_endpoint dans $_tfvars)." >&2
+  unset _tfvars; unset -f _tfvar
+  return 1 2>/dev/null || exit 1
+fi
+export COOLIFY_ENDPOINT
 _secret_name="${COOLIFY_TOKEN_SECRET_NAME:-tet-platform-coolify-api-token}"
 # Projet du secret. Sans valeur, scw prend le projet par défaut du profil : si
 # celui-ci vise un autre projet, le token est introuvable, ou pire, c'est un
@@ -19,9 +32,7 @@ _secret_name="${COOLIFY_TOKEN_SECRET_NAME:-tet-platform-coolify-api-token}"
 # project_id de infra/coolify/terraform.tfvars (projet principal, où le secret
 # est créé).
 if [ -z "${COOLIFY_TOKEN_SECRET_PROJECT_ID:-}" ]; then
-  _tfvars="$(git rev-parse --show-toplevel 2>/dev/null)/infra/coolify/terraform.tfvars"
-  [ -f "$_tfvars" ] && COOLIFY_TOKEN_SECRET_PROJECT_ID="$(sed -nE \
-    's/^[[:space:]]*project_id[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$_tfvars" | head -n1)"
+  COOLIFY_TOKEN_SECRET_PROJECT_ID="$(_tfvar project_id)"
 fi
 _project_arg=()
 [ -n "${COOLIFY_TOKEN_SECRET_PROJECT_ID:-}" ] && _project_arg=(project-id="$COOLIFY_TOKEN_SECRET_PROJECT_ID")
@@ -46,8 +57,8 @@ fi
 if [ -z "${COOLIFY_TOKEN:-}" ]; then
   echo "coolify-env.sh : COOLIFY_TOKEN introuvable." >&2
   [ -n "${_scw_out:-}" ] && echo "  scw (projet ${COOLIFY_TOKEN_SECRET_PROJECT_ID:-par défaut du profil}) : $_scw_out" >&2
-  unset _scw_out _tfvars _project_arg
-  echo "  1. Créer un token dans Coolify (Security > API Tokens, scope root)." >&2
+  unset _scw_out _tfvars _project_arg; unset -f _tfvar
+  echo "  1. Créer un token dans notre Team Coolify (Security > API Tokens, scope root)." >&2
   echo "  2. Le stocker dans Secret Manager :" >&2
   echo "       _id=\"\$(scw secret secret create name=$_secret_name -o json | jq -r .id)\"" >&2
   echo "       scw secret version create \"\$_id\" data='<id>|<token>'" >&2
@@ -59,4 +70,4 @@ export COOLIFY_TOKEN
 # Le provider Terraform `coolify` exige `token` : on le fournit via TF_VAR_*.
 export TF_VAR_coolify_token="$COOLIFY_TOKEN"
 echo "coolify-env.sh : COOLIFY_TOKEN chargé, endpoint=$COOLIFY_ENDPOINT"
-unset _scw_out _tfvars _project_arg
+unset _scw_out _tfvars _project_arg; unset -f _tfvar
