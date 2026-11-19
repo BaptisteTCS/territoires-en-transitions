@@ -67,9 +67,9 @@ variable "pg_node_type" {
 }
 
 variable "pg_volume_size_in_gb" {
-  description = "Taille du volume Postgres en GB. La restauration complète de la prod y tient (dump de ~2 GB compressé : 10 GB n'y suffisent pas). Le volume s'agrandit à chaud mais ne se réduit pas."
+  description = "Taille du volume Postgres en GB. La base restaurée depuis la prod pèse ~8 GB : 10 GB laissent peu de marge (WAL, index pendant une restauration). Le volume s'agrandit à chaud mais ne se réduit pas : réduire impose de recréer l'instance."
   type        = number
-  default     = 30
+  default     = 10
 }
 
 variable "pg_allowed_ips" {
