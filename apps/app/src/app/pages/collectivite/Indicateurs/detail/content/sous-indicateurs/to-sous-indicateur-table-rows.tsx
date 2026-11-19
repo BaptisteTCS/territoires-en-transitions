@@ -11,6 +11,7 @@ import type {
   PeriodeTableCell,
   PeriodeTableRow,
 } from '@/app/indicateurs/valeurs/periodes-table/periodes-table.types';
+import type { SaveSousIndicateurValeur } from '@/app/indicateurs/sous-indicateurs/data/use-save-sous-indicateur-valeur';
 import { appLabels } from '@/app/labels/catalog';
 import {
   IndicateurPeriodes,
@@ -74,9 +75,11 @@ const toCellsOfPeriode = ({
 const toLeafCell = ({
   cells,
   indicateurId,
+  isReadonly,
 }: {
   cells: SousIndicateurPeriodCells;
   indicateurId: number;
+  isReadonly: boolean;
 }): PeriodeTableCell | null => {
   const resultat = toValeurOrUndefined(cells.resultat);
   const objectif = toValeurOrUndefined(cells.objectif);
@@ -87,7 +90,7 @@ const toLeafCell = ({
     kind: 'valeurs',
     resultat,
     objectif,
-    isReadonly: true,
+    isReadonly,
     emptyLabel: appLabels.indicateurValeurAbsente,
     dataSource: String(indicateurId),
   };
@@ -134,12 +137,16 @@ const toSousIndicateurRow = ({
   row,
   periodicite,
   collectiviteId,
+  isReadonly,
+  saveValeur,
   isExpanded,
   onToggle,
 }: {
   row: SousIndicateurTableRow;
   periodicite: IndicateurPeriodicite;
   collectiviteId: number;
+  isReadonly: boolean;
+  saveValeur: SaveSousIndicateurValeur;
   isExpanded: boolean;
   onToggle: () => void;
 }): PeriodeTableRow => ({
@@ -177,10 +184,22 @@ const toSousIndicateurRow = ({
     const cells = toCellsOfPeriode({ cells: row.cells, periode, periodicite });
     const leafCell = row.isExpandable
       ? null
-      : toLeafCell({ cells, indicateurId: row.indicateurId });
+      : toLeafCell({
+          cells,
+          indicateurId: row.indicateurId,
+          isReadonly,
+        });
     return leafCell ?? toContentCell({ cells, isBold: false });
   },
-  onSave: SAVE_UNAVAILABLE,
+  onSave: row.isExpandable
+    ? SAVE_UNAVAILABLE
+    : (periode, field, value) =>
+        saveValeur({
+          indicateurId: row.indicateurId,
+          periode,
+          field,
+          value,
+        }),
 });
 
 export const toSousIndicateurTable = ({
@@ -188,6 +207,8 @@ export const toSousIndicateurTable = ({
   visibleRows,
   periodicite,
   collectiviteId,
+  isReadonly,
+  saveValeur,
   isExpanded,
   onToggle,
 }: {
@@ -195,6 +216,8 @@ export const toSousIndicateurTable = ({
   visibleRows: readonly SousIndicateurTableRow[];
   periodicite: IndicateurPeriodicite;
   collectiviteId: number;
+  isReadonly: boolean;
+  saveValeur: SaveSousIndicateurValeur;
   isExpanded: (rowKey: string) => boolean;
   onToggle: (rowKey: string) => void;
 }): { periodes: IndicateurPeriode[]; rows: PeriodeTableRow[] } => ({
@@ -211,6 +234,8 @@ export const toSousIndicateurTable = ({
         row,
         periodicite,
         collectiviteId,
+        isReadonly,
+        saveValeur,
         isExpanded: isExpanded(row.rowKey),
         onToggle: () => onToggle(row.rowKey),
       })

@@ -94,6 +94,7 @@ export const IndicateurDonnees = () => {
             titre={indicateur.titre}
             unite={unite}
             periodicite={indicateur.periodicite}
+            isReadonly={!canMutateValeur || indicateur.sansValeurUtilisateur}
           />
         ) : (
           <IndicateurValuesTabs

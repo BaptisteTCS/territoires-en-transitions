@@ -1,6 +1,7 @@
 'use client';
 
 import { PeriodesTable } from '@/app/indicateurs/valeurs/periodes-table/periodes-table';
+import type { SaveSousIndicateurValeur } from '@/app/indicateurs/sous-indicateurs/data/use-save-sous-indicateur-valeur';
 import type { SousIndicateursTableData } from '@/app/indicateurs/sous-indicateurs/sous-indicateurs-table.rules';
 import { appLabels } from '@/app/labels/catalog';
 import SpinnerLoader from '@/app/ui/shared/SpinnerLoader';
@@ -15,10 +16,12 @@ type Props = {
   titre: string;
   unite: string;
   periodicite: IndicateurPeriodicite;
+  isReadonly: boolean;
 };
 
 type ReadyTableProps = Omit<Props, 'indicateurId'> & {
   collectiviteId: number;
+  saveValeur: SaveSousIndicateurValeur;
   data: SousIndicateursTableData;
 };
 
@@ -44,7 +47,9 @@ const ReadyTable = ({
   titre,
   unite,
   periodicite,
+  isReadonly,
   collectiviteId,
+  saveValeur,
   data,
 }: ReadyTableProps): JSX.Element => {
   const { visibleRows, isExpanded, toggle } = useSousIndicateurRowsExpansion(
@@ -55,6 +60,8 @@ const ReadyTable = ({
     visibleRows,
     periodicite,
     collectiviteId,
+    isReadonly,
+    saveValeur,
     isExpanded,
     onToggle: toggle,
   });
@@ -66,7 +73,7 @@ const ReadyTable = ({
       unite={unite}
       periodes={periodes}
       rows={rows}
-      readonly
+      readonly={isReadonly}
       isTitlePinned
     />
   );
@@ -77,9 +84,12 @@ export const IndicateurSousIndicateursTable = ({
   titre,
   unite,
   periodicite,
+  isReadonly,
 }: Props): JSX.Element => {
-  const { useSousIndicateursTable } = useIndicateurSousIndicateursTable();
+  const { useSousIndicateursTable, useSaveSousIndicateurValeur } =
+    useIndicateurSousIndicateursTable();
   const state = useSousIndicateursTable(indicateurId);
+  const saveValeur = useSaveSousIndicateurValeur();
 
   if (state.status === 'loading') {
     return <LoadingState />;
@@ -100,7 +110,9 @@ export const IndicateurSousIndicateursTable = ({
       titre={titre}
       unite={unite}
       periodicite={periodicite}
+      isReadonly={isReadonly}
       collectiviteId={state.collectiviteId}
+      saveValeur={saveValeur}
       data={state.data}
     />
   );

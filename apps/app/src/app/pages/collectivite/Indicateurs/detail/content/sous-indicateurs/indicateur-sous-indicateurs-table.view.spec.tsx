@@ -6,9 +6,13 @@ import type {
   SousIndicateursTableData,
   SousIndicateurTableRow,
 } from '@/app/indicateurs/sous-indicateurs/sous-indicateurs-table.rules';
+import { getIndicateurValeurFieldLabel } from '@/app/indicateurs/valeurs/grid/indicateur-valeur.field';
 import { appLabels } from '@/app/labels/catalog';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import type { IndicateurPeriodicite } from '@tet/domain/indicateurs';
+import {
+  IndicateurPeriodes,
+  type IndicateurPeriodicite,
+} from '@tet/domain/indicateurs';
 import { describe, expect, it, vi } from 'vitest';
 import { IndicateurSousIndicateursTableProvider } from '../../context/indicateur-sous-indicateurs-table.context';
 import { IndicateurSousIndicateursTable } from './indicateur-sous-indicateurs-table.view';
@@ -135,28 +139,40 @@ const toReadyState = (
   data,
 });
 
+type RenderOptions = {
+  periodicite?: IndicateurPeriodicite;
+  isReadonly?: boolean;
+};
+
 const renderTable = (
   state: SousIndicateursTableState,
-  periodicite: IndicateurPeriodicite = 'annuelle'
+  { periodicite = 'annuelle', isReadonly = true }: RenderOptions = {}
 ) => {
   const useSousIndicateursTable = vi.fn(() => state);
+  const saveValeur = vi.fn().mockResolvedValue(true);
   render(
-    <IndicateurSousIndicateursTableProvider value={{ useSousIndicateursTable }}>
+    <IndicateurSousIndicateursTableProvider
+      value={{
+        useSousIndicateursTable,
+        useSaveSousIndicateurValeur: () => saveValeur,
+      }}
+    >
       <IndicateurSousIndicateursTable
         indicateurId={1}
         titre="Déchets"
         unite="t"
         periodicite={periodicite}
+        isReadonly={isReadonly}
       />
     </IndicateurSousIndicateursTableProvider>
   );
-  return { useSousIndicateursTable };
+  return { useSousIndicateursTable, saveValeur };
 };
 
 const renderReadyTable = (
   data: SousIndicateursTableData,
-  periodicite?: IndicateurPeriodicite
-) => renderTable(toReadyState(data), periodicite);
+  options?: RenderOptions
+) => renderTable(toReadyState(data), options);
 
 const getRowOf = (rowHeaderName: RegExp | string): HTMLElement => {
   const row = screen
@@ -231,7 +247,7 @@ describe('IndicateurSousIndicateursTable', () => {
       columns: [{ dateValeur: '2020-01-01' }, { dateValeur: '2020-02-01' }],
     };
 
-    renderReadyTable(monthlyData, 'mensuelle');
+    renderReadyTable(monthlyData, { periodicite: 'mensuelle' });
 
     const headers = screen
       .getAllByRole('columnheader')
@@ -246,6 +262,60 @@ describe('IndicateurSousIndicateursTable', () => {
     expect(
       screen.getByRole('columnheader', { name: 'Déchets (t)' }).className
     ).toContain('sticky');
+  });
+
+  it('enregistre le résultat saisi sur la feuille avec son indicateur et la période de la colonne', async () => {
+    const { saveValeur } = renderReadyTable(
+      toData({ totalCells: COMPLETE_TOTAL_CELLS }),
+      { isReadonly: false }
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: getIndicateurValeurFieldLabel('resultat', '2020'),
+      })
+    );
+    const input = screen.getByRole('textbox', {
+      name: getIndicateurValeurFieldLabel('resultat', '2020'),
+    });
+    fireEvent.change(input, { target: { value: '7' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+
+    await vi.waitFor(() => expect(saveValeur).toHaveBeenCalledTimes(1));
+    const [saved] = saveValeur.mock.calls[0];
+    expect({
+      indicateurId: saved.indicateurId,
+      field: saved.field,
+      value: saved.value,
+      periode: IndicateurPeriodes.format(saved.periode),
+    }).toEqual({
+      indicateurId: 6,
+      field: 'resultat',
+      value: 7,
+      periode: '2020',
+    });
+  });
+
+  it('ne rend éditable que la ligne de la feuille, ni le total ni un niveau intermédiaire', () => {
+    renderReadyTable(toData({ totalCells: COMPLETE_TOTAL_CELLS }), {
+      isReadonly: false,
+    });
+
+    expect(
+      screen.getAllByRole('button', {
+        name: getIndicateurValeurFieldLabel('resultat', '2020'),
+      })
+    ).toHaveLength(1);
+  });
+
+  it('ne propose aucune saisie en lecture seule', () => {
+    renderReadyTable(toData({ totalCells: COMPLETE_TOTAL_CELLS }));
+
+    expect(
+      screen.queryByRole('button', {
+        name: getIndicateurValeurFieldLabel('resultat', '2020'),
+      })
+    ).toBeNull();
   });
 
   it("affiche la légende du résultat et de l'objectif au-dessus du tableau", () => {

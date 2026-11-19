@@ -109,7 +109,10 @@ const renderDonnees = (indicateur: IndicateurDetaille) => {
       <IndicateurChartProvider value={{ chartInfo }}>
         <IndicateurActionsProvider value={actions}>
           <IndicateurSousIndicateursTableProvider
-            value={{ useSousIndicateursTable }}
+            value={{
+              useSousIndicateursTable,
+              useSaveSousIndicateurValeur: () => vi.fn(),
+            }}
           >
             <IndicateurDonnees />
           </IndicateurSousIndicateursTableProvider>
